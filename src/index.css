@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+/* ============================================================
+   THEME — calm, academic palette: navy, blue, white, light gray,
+   with amber as the single subtle accent color.
+   Edit these values to re-theme the whole site.
+   ============================================================ */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-navy-50: #f0f4f8;
+  --color-navy-100: #d9e2ec;
+  --color-navy-200: #bcccdc;
+  --color-navy-300: #9fb3c8;
+  --color-navy-400: #829ab1;
+  --color-navy-500: #627d98;
+  --color-navy-600: #486581;
+  --color-navy-700: #334e68;
+  --color-navy-800: #243b53;
+  --color-navy-900: #102a43;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Offset anchored sections so the sticky navbar doesn't cover headings */
+section[id] {
+  scroll-margin-top: 5rem;
+}
+
+body {
+  @apply bg-white text-navy-800 antialiased;
+}
+
+/* ============================================================
+   BACKGROUND TREATMENTS — give sections texture and depth so the
+   site doesn't read as flat white-on-blue. Applied via classNames.
+   ============================================================ */
+
+/* Faint dot grid over a light surface (used on white sections) */
+.bg-dots {
+  background-color: #ffffff;
+  background-image: radial-gradient(rgba(16, 42, 67, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: -12px -12px;
+}
+
+/* Soft top-to-bottom light gradient (used on tinted sections) */
+.bg-soft {
+  background: linear-gradient(180deg, #eaf1f8 0%, #f6f9fc 55%, #ffffff 100%);
+}
+
+/* Graph-paper grid on a light surface */
+.bg-graph {
+  background-color: #f6f9fc;
+  background-image:
+    linear-gradient(rgba(16, 42, 67, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 42, 67, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Rich layered hero background: warm amber + cool blue glows over navy */
+.hero-bg {
+  background:
+    radial-gradient(900px 480px at 85% -10%, rgba(245, 158, 11, 0.20), transparent 60%),
+    radial-gradient(760px 520px at 2% 6%, rgba(37, 99, 235, 0.30), transparent 55%),
+    linear-gradient(155deg, #0b1f38 0%, #102a43 48%, #0c2038 100%);
+}
+
+/* Deep gradient panel for dark call-to-action style sections */
+.panel-dark {
+  background:
+    radial-gradient(700px 400px at 90% 110%, rgba(37, 99, 235, 0.25), transparent 60%),
+    linear-gradient(150deg, #102a43 0%, #0d2340 100%);
+}
+
+/* Blurred decorative color blob */
+.blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(64px);
+  pointer-events: none;
+  z-index: 0;
+}
