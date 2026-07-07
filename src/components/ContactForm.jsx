@@ -36,18 +36,20 @@ const INITIAL_FORM = {
 
 // ============================================================
 // FORM BACKEND — Web3Forms (free, unlimited submissions).
-// Paste your access key between the quotes below.
 //
-// Setup (~2 min):
-//   1. Go to https://web3forms.com and enter adreddy35@gmail.com
-//   2. They email you an access key (looks like a1b2c3d4-....).
-//   3. Paste that key here.
+// The Web3Forms access key is a PUBLIC key by design: it only allows
+// submitting to your form, so it is safe to keep in this client code.
+// It is NOT a secret. (A private/secret API key would never belong here.)
 //
-// Once filled in, every submission is emailed to you with all the
-// fields below. Until then, the form still works but just logs to the
-// browser console instead of sending.
+// It can be overridden per-deployment with a VITE_WEB3FORMS_ACCESS_KEY
+// environment variable (e.g. set in Vercel), otherwise it falls back to
+// the key below so the form works out of the box.
+//
+// To change it: get a key at https://web3forms.com (enter your email;
+// they send the key) and replace the fallback string below.
 // ============================================================
-const WEB3FORMS_ACCESS_KEY = '5edb423d-59c7-461b-9848-3f966e16c46d'
+const WEB3FORMS_ACCESS_KEY =
+  import.meta.env.VITE_WEB3FORMS_ACCESS_KEY || '5edb423d-59c7-461b-9848-3f966e16c46d'
 
 export default function ContactForm() {
   const [form, setForm] = useState(INITIAL_FORM)

@@ -79,6 +79,10 @@ export default function About() {
               <img
                 src="/adeep-headshot.jpg"
                 alt="Headshot of Adeep Gowreddy, math and coding tutor, wearing a blue suit"
+                width="512"
+                height="431"
+                loading="lazy"
+                decoding="async"
                 className="mx-auto -mt-16 h-32 w-32 rounded-full border-4 border-white object-cover shadow-md"
               />
               <h3 className="mt-4 text-center text-2xl font-bold text-navy-900">Adeep Gowreddy</h3>
