@@ -32,6 +32,44 @@ const INITIAL_FORM = {
   helpWith: '',
   availability: '',
   message: '',
+  botcheck: '', // honeypot — humans never see this field, bots tend to fill it
+}
+
+// ============================================================
+// SPAM PROTECTION
+// 1) Honeypot: a hidden "botcheck" field that real visitors never see.
+//    If it comes back filled, the submission is from a bot and is
+//    silently dropped (Web3Forms also checks this server-side).
+// 2) Rate limit: at most 3 submissions per 10 minutes per browser,
+//    tracked in localStorage. Stops someone hammering the form without
+//    ever blocking a normal parent. Client-side only, so it's a speed
+//    bump, not a wall — Web3Forms runs its own server-side spam
+//    filtering on top of this.
+// ============================================================
+const RATE_LIMIT_MAX = 3
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000 // 10 minutes
+const RATE_LIMIT_STORAGE_KEY = 'ag-tutoring-form-submissions'
+
+function recentSubmissions() {
+  try {
+    const now = Date.now()
+    return JSON.parse(localStorage.getItem(RATE_LIMIT_STORAGE_KEY) || '[]').filter(
+      (t) => now - t < RATE_LIMIT_WINDOW_MS
+    )
+  } catch {
+    return [] // localStorage unavailable (e.g. private browsing) — don't block
+  }
+}
+
+function recordSubmission() {
+  try {
+    localStorage.setItem(
+      RATE_LIMIT_STORAGE_KEY,
+      JSON.stringify([...recentSubmissions(), Date.now()])
+    )
+  } catch {
+    // localStorage unavailable — skip tracking
+  }
 }
 
 // ============================================================
@@ -88,6 +126,23 @@ export default function ContactForm() {
     }
 
     setSubmitError('')
+    setSubmitted(false)
+
+    // Honeypot tripped: a bot filled the hidden field. Pretend success so
+    // the bot moves on, but never send anything.
+    if (form.botcheck) {
+      setSubmitted(true)
+      setForm(INITIAL_FORM)
+      return
+    }
+
+    // Rate limit: block only genuinely abnormal bursts (see constants above).
+    if (recentSubmissions().length >= RATE_LIMIT_MAX) {
+      setSubmitError(
+        'You’ve sent several requests in a short time. Please wait a few minutes and try again, or email adreddy35@gmail.com directly.'
+      )
+      return
+    }
 
     // Readable, labeled payload so the notification email is easy to skim.
     // access_key tells Web3Forms which inbox to deliver to; replyto makes
@@ -97,6 +152,7 @@ export default function ContactForm() {
       subject: `New tutoring request from ${form.name}`,
       from_name: 'AG Tutoring Website',
       replyto: form.email,
+      botcheck: form.botcheck,
       Name: form.name,
       Email: form.email,
       Phone: form.phone || '(not provided)',
@@ -115,6 +171,7 @@ export default function ContactForm() {
       console.log('Tutoring request (no backend connected yet):', payload)
       setSubmitted(true)
       setForm(INITIAL_FORM)
+      recordSubmission()
       return
     }
 
@@ -129,12 +186,23 @@ export default function ContactForm() {
         body: JSON.stringify(payload),
       })
       const data = await res.json()
-      if (!data.success) throw new Error('Request failed')
+      if (!data.success) throw new Error(data.message || `Request failed (HTTP ${res.status})`)
       setSubmitted(true)
       setForm(INITIAL_FORM)
-    } catch {
+      recordSubmission()
+      // Bring the confirmation into view so it can't be missed.
+      setTimeout(() => {
+        document.getElementById('form-success')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+    } catch (err) {
+      // Surface the real reason so problems are diagnosable, with a hint for
+      // the most common cause of a blocked request.
+      const reason =
+        err?.message === 'Failed to fetch'
+          ? 'the request was blocked — this can happen with ad blockers or strict tracking prevention'
+          : err?.message
       setSubmitError(
-        'Something went wrong sending your request. Please email adreddy35@gmail.com directly and I’ll get right back to you.'
+        `Something went wrong sending your request${reason ? ` (${reason})` : ''}. Please email adreddy35@gmail.com directly and I’ll get right back to you.`
       )
     } finally {
       setSending(false)
@@ -164,28 +232,40 @@ export default function ContactForm() {
         <div className="mt-12 grid gap-8 lg:grid-cols-[1.5fr_1fr]">
           {/* Contact form */}
           <div className="rounded-2xl border border-navy-100 bg-white p-6 shadow-sm sm:p-8">
-            {submitted ? (
-              <div className="flex h-full flex-col items-center justify-center py-12 text-center" role="status">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
-                  <svg className="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+            {/* Success confirmation — the form below is cleared and stays usable */}
+            {submitted && (
+              <div
+                id="form-success"
+                role="status"
+                className="mb-6 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4"
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100">
+                  <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h3 className="mt-4 text-xl font-bold text-navy-900">Request sent!</h3>
-                <p className="mt-2 max-w-sm text-navy-600">
-                  Thanks for reaching out! I&rsquo;ll get back to you soon about tutoring
-                  availability.
-                </p>
-                <button
-                  type="button"
-                  className="mt-6 text-sm font-semibold text-blue-700 hover:text-blue-800"
-                  onClick={() => setSubmitted(false)}
-                >
-                  Send another request
-                </button>
+                <div>
+                  <p className="font-bold text-green-800">Request sent!</p>
+                  <p className="mt-0.5 text-sm text-green-700">
+                    Thanks for reaching out! I&rsquo;ll get back to you soon about tutoring
+                    availability.
+                  </p>
+                </div>
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} noValidate>
+            )}
+
+            <form onSubmit={handleSubmit} noValidate>
+                {/* Honeypot spam trap — hidden from real visitors */}
+                <input
+                  type="text"
+                  name="botcheck"
+                  value={form.botcheck}
+                  onChange={handleChange}
+                  className="hidden"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                />
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div>
                     <label htmlFor="name" className="mb-1.5 block text-sm font-semibold text-navy-800">
@@ -378,7 +458,6 @@ export default function ContactForm() {
                   {sending ? 'Sending…' : 'Request Tutoring'}
                 </button>
               </form>
-            )}
           </div>
 
           {/* Contact info card */}
